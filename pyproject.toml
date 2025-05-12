@@ -4,20 +4,28 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "py-whelk"
-version = "0.1.0"
 description = "Wrapper arround whelk-rs for integration with py-horned-owl"
 readme = "README.md"
 requires-python = ">=3.12"
-license = { text = "MIT" }
+license = "LGPL-3.0-or-later"
 authors = [
     { name = "Björn Gehrke", email = "bjoern.gehrke+pywhelk@uzh.ch" }
 ]
 dependencies = [
     "py-horned-owl >= 1.2.0"
 ]
+dynamic = ["version"]
+classifiers = [
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+]
 
 [tool.setuptools]
 packages = ["pywhelk"]
+
+[tool.setuptools.dynamic]
+version = {attr = "pywhelk.__version__"}
 
 [tool.setuptools.package-data]
 pywhelk = ["*.so", "*.dll"]

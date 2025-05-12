@@ -1,3 +1,5 @@
+__version__ = "0.1.0"
+
 def create_reasoner():
     """
     Create a reasoner instance.
