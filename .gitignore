@@ -1,0 +1,5 @@
+target
+.venv
+venv
+.idea
+.code

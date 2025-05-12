@@ -1,0 +1,16 @@
+[package]
+name = "py-whelk"
+description = "A wrapper around whelk"
+version = "0.0.0"
+authors = ["Björn Gehrke <bjoern.gehrke+pywhelk@uzh.ch>"]
+edition = "2024"
+
+[lib]
+name="pywhelk"
+crate-type=["cdylib"]
+
+[dependencies]
+horned-owl = "^1.0"
+#horned-owl = { git = "https://github.com/phillord/horned-owl", branch = "devel" }
+whelk = { path = "../whelk-rs" }
+py-horned-owl-reasoner = { path = "../py-horned-owl/lib/reasoner" }
