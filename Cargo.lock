@@ -700,6 +700,7 @@ dependencies = [
 [[package]]
 name = "py-horned-owl-reasoner"
 version = "0.1.0"
+source = "git+https://github.com/ontology-tools/py-horned-owl?branch=feature%2Freasoner#3a3fab9f5420139104b4bd0af90dc02c31c7a118"
 dependencies = [
  "horned-owl",
 ]
@@ -1113,6 +1114,7 @@ dependencies = [
 [[package]]
 name = "whelk"
 version = "0.1.0"
+source = "git+https://github.com/b-gehrke/whelk-rs#79a1ee21789add5a66faa0ec1a830c32dba9b539"
 dependencies = [
  "clap",
  "curie",
