@@ -1,12 +1,10 @@
 use horned_owl::model::{
-    AnnotatedComponent, ArcStr, ClassExpression, Component, ForIRI,
-    MutableOntology, SubClassOf,
+    AnnotatedComponent, ArcStr, ClassExpression, Component, MutableOntology, SubClassOf,
 };
 use horned_owl::ontology::indexed::{OntologyIndex, TwoIndexedOntology};
 use horned_owl::ontology::set::{SetIndex, SetOntology};
 use horned_owl::{model as ho, vocab};
 use std::collections::HashSet;
-use std::sync::Arc;
 use whelk::whelk::reasoner;
 
 use pyhornedowlreasoner::{Reasoner, Reasoner2, ReasonerError};
@@ -14,19 +12,16 @@ use whelk::whelk::model::Axiom;
 use whelk::whelk::owl::{translate_axiom, translate_ontology};
 use whelk::whelk::reasoner::{assert, assert_append, ReasonerState};
 
-#[derive(Default)]
-pub struct PyWhelkIndex<A: ForIRI> {
+pub struct PyWhelkIndex {
     state: ReasonerState,
-    pending_adds: HashSet<AnnotatedComponent<A>>,
-    pending_deletes: HashSet<AnnotatedComponent<A>>,
 }
 
-pub struct PyWhelkReasoner<A: ForIRI>(
+pub struct PyWhelkReasoner(
     TwoIndexedOntology<
-        A,
-        AnnotatedComponent<A>,
-        SetIndex<A, AnnotatedComponent<A>>,
-        PyWhelkIndex<A>,
+        ArcStr,
+        AnnotatedComponent<ArcStr>,
+        SetIndex<ArcStr, AnnotatedComponent<ArcStr>>,
+        PyWhelkIndex,
     >,
 );
 
@@ -39,7 +34,7 @@ pub fn create_reasoner(ontology: SetOntology<ArcStr>) -> Box<dyn Reasoner2> {
 pub fn create_incremental_reasoner(ontology: SetOntology<ArcStr>) -> Box<dyn Reasoner2> {
     Box::new(PyWhelkReasoner::create_reasoner(ontology))
 }
-impl PyWhelkReasoner<ArcStr> {
+impl PyWhelkReasoner {
     fn create_reasoner(ontology: SetOntology<ArcStr>) -> Self {
         let translated = translate_ontology(&ontology);
 
@@ -47,13 +42,12 @@ impl PyWhelkReasoner<ArcStr> {
             ontology.i().clone(),
             PyWhelkIndex {
                 state: assert(&translated),
-                ..Default::default()
             },
         ))
     }
 }
 
-impl OntologyIndex<ArcStr, AnnotatedComponent<ArcStr>> for PyWhelkIndex<ArcStr> {
+impl OntologyIndex<ArcStr, AnnotatedComponent<ArcStr>> for PyWhelkIndex {
     fn index_insert(&mut self, cmp: AnnotatedComponent<ArcStr>) -> bool {
         let translated = translate_axiom(&cmp.component)
             .into_iter()
@@ -67,12 +61,12 @@ impl OntologyIndex<ArcStr, AnnotatedComponent<ArcStr>> for PyWhelkIndex<ArcStr> 
         false
     }
 
-    fn index_remove(&mut self, cmp: &AnnotatedComponent<ArcStr>) -> bool {
+    fn index_remove(&mut self, _cmp: &AnnotatedComponent<ArcStr>) -> bool {
         false
     }
 }
 
-impl OntologyIndex<ArcStr, AnnotatedComponent<ArcStr>> for PyWhelkReasoner<ArcStr> {
+impl OntologyIndex<ArcStr, AnnotatedComponent<ArcStr>> for PyWhelkReasoner {
     fn index_insert(&mut self, cmp: AnnotatedComponent<ArcStr>) -> bool {
         self.0.index_insert(cmp)
     }
@@ -81,12 +75,15 @@ impl OntologyIndex<ArcStr, AnnotatedComponent<ArcStr>> for PyWhelkReasoner<ArcSt
         self.0.index_remove(cmp)
     }
 
-    fn index_take(&mut self, cmp: &AnnotatedComponent<ArcStr>) -> Option<AnnotatedComponent<ArcStr>> {
+    fn index_take(
+        &mut self,
+        cmp: &AnnotatedComponent<ArcStr>,
+    ) -> Option<AnnotatedComponent<ArcStr>> {
         self.0.index_take(cmp)
     }
 }
 
-impl Reasoner for PyWhelkReasoner<ArcStr> {
+impl Reasoner for PyWhelkReasoner {
     fn classify(
         &self,
         ontology: &SetOntology<ArcStr>,
@@ -128,7 +125,7 @@ impl Reasoner for PyWhelkReasoner<ArcStr> {
     }
 }
 
-impl Reasoner2 for PyWhelkReasoner<ArcStr> {
+impl Reasoner2 for PyWhelkReasoner {
     fn get_name(&self) -> String {
         "PyWhelk".to_string()
     }
@@ -146,7 +143,8 @@ impl Reasoner2 for PyWhelkReasoner<ArcStr> {
         self.is_entailed(&Component::SubClassOf(SubClassOf {
             sub: build.class(vocab::OWL::Thing.as_ref()).into(),
             sup: build.class(vocab::OWL::Nothing.as_ref()).into(),
-        })).map(|r| !r)
+        }))
+        .map(|r| !r)
     }
 
     fn is_entailed(&self, cmp: &Component<ArcStr>) -> Result<bool, ReasonerError> {
@@ -160,9 +158,7 @@ impl Reasoner2 for PyWhelkReasoner<ArcStr> {
                 .state
                 .named_subsumptions()
                 .iter()
-                .find(|(b, p)| {
-                    sub.0.to_string() == b.id && sup.0.to_string() == p.id
-                })
+                .find(|(b, p)| sub.0.to_string() == b.id && sup.0.to_string() == p.id)
                 .is_some()),
             _ => Err(ReasonerError::Other(
                 "Cannot check entailment for this component".to_string(),

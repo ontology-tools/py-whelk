@@ -12,7 +12,7 @@ crate-type=["cdylib"]
 [dependencies]
 #horned-owl = "^1.0"
 horned-owl = { git = "https://github.com/phillord/horned-owl", branch = "devel" }
-#whelk = { git = "https://github.com/b-gehrke/whelk-rs" } # Waiting for https://github.com/INCATools/whelk-rs/pull/24
-whelk = { path = "../whelk-rs" }
+whelk = { git = "https://github.com/b-gehrke/whelk-rs", branch = "tmp/use-development-horned" } # Waiting for https://github.com/INCATools/whelk-rs/pull/24
+#whelk = { path = "../whelk-rs" }
 #py-horned-owl-reasoner = { git = "https://github.com/ontology-tools/py-horned-owl", branch = "feature/reasoner" }
 py-horned-owl-reasoner = { path = "../py-horned-owl/lib/reasoner" }

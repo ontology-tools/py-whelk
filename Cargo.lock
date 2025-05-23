@@ -1112,6 +1112,7 @@ dependencies = [
 [[package]]
 name = "whelk"
 version = "0.1.0"
+source = "git+https://github.com/b-gehrke/whelk-rs?branch=tmp%2Fuse-development-horned#1d64d7db04e6a045af7c198f1b19d213a6e1ee6c"
 dependencies = [
  "clap",
  "curie",
