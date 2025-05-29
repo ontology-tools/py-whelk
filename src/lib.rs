@@ -1,54 +1,39 @@
 use horned_owl::model::{
-    AnnotatedComponent, ArcStr, ClassExpression, Component, MutableOntology, SubClassOf,
+    AnnotatedComponent, ArcAnnotatedComponent, ArcStr, ClassExpression, Component, SubClassOf,
 };
-use horned_owl::ontology::indexed::{OntologyIndex, TwoIndexedOntology};
-use horned_owl::ontology::set::{SetIndex, SetOntology};
+use horned_owl::ontology::indexed::OntologyIndex;
+use horned_owl::ontology::set::SetOntology;
 use horned_owl::{model as ho, vocab};
 use std::collections::HashSet;
-use whelk::whelk::reasoner;
 
-use pyhornedowlreasoner::{Reasoner, Reasoner2, ReasonerError};
+use pyhornedowlreasoner::{Reasoner, ReasonerError};
 use whelk::whelk::model::Axiom;
 use whelk::whelk::owl::{translate_axiom, translate_ontology};
 use whelk::whelk::reasoner::{assert, assert_append, ReasonerState};
 
-pub struct PyWhelkIndex {
+pub struct PyWhelkReasoner {
     state: ReasonerState,
 }
 
-pub struct PyWhelkReasoner(
-    TwoIndexedOntology<
-        ArcStr,
-        AnnotatedComponent<ArcStr>,
-        SetIndex<ArcStr, AnnotatedComponent<ArcStr>>,
-        PyWhelkIndex,
-    >,
-);
-
 #[unsafe(no_mangle)]
-pub fn create_reasoner(ontology: SetOntology<ArcStr>) -> Box<dyn Reasoner2> {
+pub fn create_reasoner(
+    ontology: SetOntology<ArcStr>,
+) -> Box<dyn Reasoner<ArcStr, ArcAnnotatedComponent>> {
     Box::new(PyWhelkReasoner::create_reasoner(ontology))
 }
 
-#[unsafe(no_mangle)]
-pub fn create_incremental_reasoner(ontology: SetOntology<ArcStr>) -> Box<dyn Reasoner2> {
-    Box::new(PyWhelkReasoner::create_reasoner(ontology))
-}
 impl PyWhelkReasoner {
     fn create_reasoner(ontology: SetOntology<ArcStr>) -> Self {
         let translated = translate_ontology(&ontology);
 
-        PyWhelkReasoner(TwoIndexedOntology::new(
-            ontology.i().clone(),
-            PyWhelkIndex {
-                state: assert(&translated),
-            },
-        ))
+        PyWhelkReasoner {
+            state: assert(&translated),
+        }
     }
 }
 
-impl OntologyIndex<ArcStr, AnnotatedComponent<ArcStr>> for PyWhelkIndex {
-    fn index_insert(&mut self, cmp: AnnotatedComponent<ArcStr>) -> bool {
+impl OntologyIndex<ArcStr, ArcAnnotatedComponent> for PyWhelkReasoner {
+    fn index_insert(&mut self, cmp: ArcAnnotatedComponent) -> bool {
         let translated = translate_axiom(&cmp.component)
             .into_iter()
             .filter_map(|c| match c.as_ref() {
@@ -66,76 +51,27 @@ impl OntologyIndex<ArcStr, AnnotatedComponent<ArcStr>> for PyWhelkIndex {
     }
 }
 
-impl OntologyIndex<ArcStr, AnnotatedComponent<ArcStr>> for PyWhelkReasoner {
-    fn index_insert(&mut self, cmp: AnnotatedComponent<ArcStr>) -> bool {
-        self.0.index_insert(cmp)
-    }
-
-    fn index_remove(&mut self, cmp: &AnnotatedComponent<ArcStr>) -> bool {
-        self.0.index_remove(cmp)
-    }
-
-    fn index_take(
-        &mut self,
-        cmp: &AnnotatedComponent<ArcStr>,
-    ) -> Option<AnnotatedComponent<ArcStr>> {
-        self.0.index_take(cmp)
-    }
-}
-
-impl Reasoner for PyWhelkReasoner {
-    fn classify(
-        &self,
-        ontology: &SetOntology<ArcStr>,
-    ) -> Result<SetOntology<ArcStr>, ReasonerError> {
-        let mut ontology: SetOntology<ArcStr> = ontology.clone();
-        let inferred_components = self.infer(&ontology)?;
-
-        for component in inferred_components {
-            ontology.insert(ho::AnnotatedComponent {
-                component,
-                ann: Default::default(), // TODO: Add annotation stating this axiom is inferred
-            });
-        }
-
-        Ok(ontology)
-    }
-
-    fn infer(
-        &self,
-        ontology: &SetOntology<ArcStr>,
-    ) -> Result<HashSet<Component<ArcStr>>, ReasonerError> {
-        let set_ontology: SetOntology<ArcStr> = ontology.clone();
-        let build = ho::Build::<ArcStr>::new();
-
-        let translated = translate_ontology(&set_ontology);
-        let state = reasoner::assert(&translated);
-
-        let inferred_components = state
-            .named_subsumptions()
-            .iter()
-            .map(|(sub, sup)| {
-                let sub: ho::ClassExpression<ArcStr> = build.class(sub.id.clone()).into();
-                let sup: ho::ClassExpression<ArcStr> = build.class(sup.id.clone()).into();
-                ho::Component::SubClassOf(ho::SubClassOf { sub, sup })
-            })
-            .collect();
-
-        Ok(inferred_components)
-    }
-}
-
-impl Reasoner2 for PyWhelkReasoner {
+impl Reasoner<ArcStr, ArcAnnotatedComponent> for PyWhelkReasoner {
     fn get_name(&self) -> String {
         "PyWhelk".to_string()
     }
 
     fn get_version(&self) -> String {
-        "0.1.0".to_string()
+        env!("CARGO_PKG_VERSION").to_string()
     }
 
-    fn get_ontology(&self) -> SetOntology<ArcStr> {
-        SetOntology::from_index(self.0.i().clone())
+    fn inferred_axioms(&self) -> HashSet<Component<ArcStr>> {
+        let build = ho::Build::<ArcStr>::new();
+
+        self.state
+            .named_subsumptions()
+            .iter()
+            .map(|(sub, sup)| {
+                let sub: ClassExpression<ArcStr> = build.class(sub.id.clone()).into();
+                let sup: ClassExpression<ArcStr> = build.class(sup.id.clone()).into();
+                Component::SubClassOf(SubClassOf { sub, sup })
+            })
+            .collect()
     }
 
     fn is_consistent(&self) -> Result<bool, ReasonerError> {
@@ -153,16 +89,16 @@ impl Reasoner2 for PyWhelkReasoner {
                 sub: ClassExpression::Class(sub),
                 sup: ClassExpression::Class(sup),
             }) => Ok(self
-                .0
-                .j()
                 .state
                 .named_subsumptions()
                 .iter()
                 .find(|(b, p)| sub.0.to_string() == b.id && sup.0.to_string() == p.id)
                 .is_some()),
-            _ => Err(ReasonerError::Other(
-                "Cannot check entailment for this component".to_string(),
-            )),
+            c => Err(ReasonerError::Other(format!(
+                "Cannot check entailment for component {:?}",
+                c
+            ))
+            .into()),
         }
     }
 }
