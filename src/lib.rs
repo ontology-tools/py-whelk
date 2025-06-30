@@ -4,15 +4,15 @@ use horned_owl::model::{
 use horned_owl::ontology::indexed::OntologyIndex;
 use horned_owl::ontology::set::SetOntology;
 use horned_owl::{model as ho, vocab};
-use std::collections::HashSet;
 
-use pyhornedowlreasoner::{Reasoner, ReasonerError};
+use pyhornedowlreasoner::{Reasoner, ReasonerError, ReasonerIndex};
 use whelk::whelk::model::Axiom;
 use whelk::whelk::owl::{translate_axiom, translate_ontology};
 use whelk::whelk::reasoner::{assert, assert_append, ReasonerState};
 
 pub struct PyWhelkReasoner {
     state: ReasonerState,
+    pending_insert: Vec<ArcAnnotatedComponent>,
 }
 
 #[unsafe(no_mangle)]
@@ -28,14 +28,30 @@ impl PyWhelkReasoner {
 
         PyWhelkReasoner {
             state: assert(&translated),
+            pending_insert: Vec::new(),
         }
     }
 }
 
 impl OntologyIndex<ArcStr, ArcAnnotatedComponent> for PyWhelkReasoner {
     fn index_insert(&mut self, cmp: ArcAnnotatedComponent) -> bool {
-        let translated = translate_axiom(&cmp.component)
+        self.pending_insert.push(cmp);
+
+        false
+    }
+
+    fn index_remove(&mut self, _cmp: &AnnotatedComponent<ArcStr>) -> bool {
+        false
+    }
+}
+
+impl ReasonerIndex<ArcStr, ArcAnnotatedComponent> for PyWhelkReasoner {
+    fn flush(&mut self) -> Result<(), ReasonerError> {
+        let pending_inserts = std::mem::take(&mut self.pending_insert);
+
+        let translated = pending_inserts
             .into_iter()
+            .flat_map(|c| translate_axiom(&c.component))
             .filter_map(|c| match c.as_ref() {
                 Axiom::ConceptInclusion(ci) => Some(ci.clone()),
                 _ => None,
@@ -43,11 +59,7 @@ impl OntologyIndex<ArcStr, ArcAnnotatedComponent> for PyWhelkReasoner {
             .collect();
         self.state = assert_append(&translated, &self.state);
 
-        false
-    }
-
-    fn index_remove(&mut self, _cmp: &AnnotatedComponent<ArcStr>) -> bool {
-        false
+        Ok(())
     }
 }
 
@@ -60,18 +72,19 @@ impl Reasoner<ArcStr, ArcAnnotatedComponent> for PyWhelkReasoner {
         env!("CARGO_PKG_VERSION").to_string()
     }
 
-    fn inferred_axioms(&self) -> HashSet<Component<ArcStr>> {
+    fn inferred_axioms(&self) -> Box<dyn Iterator<Item = Component<ArcStr>>> {
         let build = ho::Build::<ArcStr>::new();
 
-        self.state
-            .named_subsumptions()
-            .iter()
-            .map(|(sub, sup)| {
-                let sub: ClassExpression<ArcStr> = build.class(sub.id.clone()).into();
-                let sup: ClassExpression<ArcStr> = build.class(sup.id.clone()).into();
-                Component::SubClassOf(SubClassOf { sub, sup })
-            })
-            .collect()
+        Box::new(
+            self.state
+                .named_subsumptions()
+                .into_iter()
+                .map(move |(sub, sup)| {
+                    let sub: ClassExpression<ArcStr> = build.class(sub.id.clone()).into();
+                    let sup: ClassExpression<ArcStr> = build.class(sup.id.clone()).into();
+                    Component::SubClassOf(SubClassOf { sub, sup })
+                }),
+        )
     }
 
     fn is_consistent(&self) -> Result<bool, ReasonerError> {
@@ -97,6 +110,33 @@ impl Reasoner<ArcStr, ArcAnnotatedComponent> for PyWhelkReasoner {
             c => Err(ReasonerError::Other(format!(
                 "Cannot check entailment for component {:?}",
                 c
+            ))
+            .into()),
+        }
+    }
+
+    fn get_subclasses<'a>(
+        &'a self,
+        cmp: &'a ClassExpression<ArcStr>,
+    ) -> Result<Box<dyn Iterator<Item = ClassExpression<ArcStr>> + 'a>, ReasonerError> {
+        let build = ho::Build::<ArcStr>::new();
+
+        match cmp {
+            ClassExpression::Class(c) => Ok(Box::new(
+                self.state
+                    .named_subsumptions()
+                    .into_iter()
+                    .filter_map(move |(sub, sup)| {
+                        if sup.id == c.to_string() {
+                            Some(build.class(sub.id.clone()).into())
+                        } else {
+                            None
+                        }
+                    })
+            )),
+            _ => Err(ReasonerError::Other(format!(
+                "Cannot get subclasses for component {:?}",
+                cmp
             ))
             .into()),
         }
