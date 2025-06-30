@@ -1,4 +1,4 @@
-.PHONY: test
+.PHONY: test build build-dev
 
 build:
 	cargo build --release
@@ -16,4 +16,10 @@ test: build
 	[ -d test/venv ] || python3 -m venv test/venv
 	. test/venv/bin/activate && pip install --force-reinstall .
 	python3 -m unittest discover -s test -p "test_*.py"
+	
+clean:
+	rm -rf test/venv
+	rm -rf dist/
+	rm -rf *.egg-info
+	rm -rf target/
 	

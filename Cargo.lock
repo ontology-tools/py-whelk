@@ -361,6 +361,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "horned-owl"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8587bf7d7bd1fe6aa28294a5dc508cc4cd4f6bd8a4c275eebbe7b1bd809c1acb"
+dependencies = [
+ "curie",
+ "enum_meta",
+ "indexmap 1.9.3",
+ "lazy_static",
+ "log",
+ "oxiri",
+ "pest",
+ "pest_derive",
+ "pretty_rdf",
+ "quick-xml 0.31.0",
+ "rio_api",
+ "rio_xml",
+ "thiserror 1.0.69",
+ "ureq",
+]
+
+[[package]]
 name = "humantime"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -699,15 +721,16 @@ dependencies = [
 [[package]]
 name = "py-horned-owl-reasoner"
 version = "0.1.0"
+source = "git+https://github.com/ontology-tools/py-horned-owl?branch=feature%2Freasoner#7c44335db791cbba1690d7949009c60b32b073b1"
 dependencies = [
- "horned-owl",
+ "horned-owl 1.0.1-dev",
 ]
 
 [[package]]
 name = "py-whelk"
 version = "0.0.0"
 dependencies = [
- "horned-owl",
+ "horned-owl 1.1.0",
  "py-horned-owl-reasoner",
  "whelk",
 ]
@@ -1112,12 +1135,12 @@ dependencies = [
 [[package]]
 name = "whelk"
 version = "0.1.0"
-source = "git+https://github.com/b-gehrke/whelk-rs?branch=tmp%2Fuse-development-horned#1d64d7db04e6a045af7c198f1b19d213a6e1ee6c"
+source = "git+https://github.com/b-gehrke/whelk-rs?branch=feature%2Fupdate-horned#6af3061b6a6067adccc7562ca3aab076d50dad57"
 dependencies = [
  "clap",
  "curie",
  "env_logger",
- "horned-owl",
+ "horned-owl 1.1.0",
  "humantime",
  "im",
  "itertools",
