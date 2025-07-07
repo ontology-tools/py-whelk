@@ -17,7 +17,6 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
     strategy:
       matrix:
-        python-version: ["cp312","cp311","cp310","cp39"]
         include:
           - os: linux-intel
             runs-on: ubuntu-latest
@@ -41,7 +40,6 @@ jobs:
         uses: pypa/cibuildwheel@v3.0.1
         env:
           CIBW_PLATFORM: ${{ matrix.platform || 'auto' }}
-          CIBW_BUILD: ${{matrix.python-version || 'cp'}}*
         # Can also be configured directly, using `with:`
         # with:
         #   package-dir: .
