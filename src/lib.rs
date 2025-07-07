@@ -5,24 +5,19 @@ use horned_owl::ontology::indexed::OntologyIndex;
 use horned_owl::ontology::set::SetOntology;
 use horned_owl::{model as ho, vocab};
 
-use pyhornedowlreasoner::{Reasoner, ReasonerError, ReasonerIndex};
+use pyhornedowlreasoner::{PyReasoner, Reasoner, ReasonerError, export_py_reasoner};
 use whelk::whelk::model::Axiom;
 use whelk::whelk::owl::{translate_axiom, translate_ontology};
-use whelk::whelk::reasoner::{assert, assert_append, ReasonerState};
+use whelk::whelk::reasoner::{ReasonerState, assert, assert_append};
 
 pub struct PyWhelkReasoner {
     state: ReasonerState,
     pending_insert: Vec<ArcAnnotatedComponent>,
 }
 
-#[unsafe(no_mangle)]
-pub fn create_reasoner(
-    ontology: SetOntology<ArcStr>,
-) -> Box<dyn Reasoner<ArcStr, ArcAnnotatedComponent>> {
-    Box::new(PyWhelkReasoner::create_reasoner(ontology))
-}
+export_py_reasoner!(PyWhelkReasoner);
 
-impl PyWhelkReasoner {
+impl PyReasoner for PyWhelkReasoner {
     fn create_reasoner(ontology: SetOntology<ArcStr>) -> Self {
         let translated = translate_ontology(&ontology);
 
@@ -45,7 +40,11 @@ impl OntologyIndex<ArcStr, ArcAnnotatedComponent> for PyWhelkReasoner {
     }
 }
 
-impl ReasonerIndex<ArcStr, ArcAnnotatedComponent> for PyWhelkReasoner {
+impl Reasoner<ArcStr, ArcAnnotatedComponent> for PyWhelkReasoner {
+    fn get_name(&self) -> String {
+        "PyWhelk".to_string()
+    }
+
     fn flush(&mut self) -> Result<(), ReasonerError> {
         let pending_inserts = std::mem::take(&mut self.pending_insert);
 
@@ -60,16 +59,6 @@ impl ReasonerIndex<ArcStr, ArcAnnotatedComponent> for PyWhelkReasoner {
         self.state = assert_append(&translated, &self.state);
 
         Ok(())
-    }
-}
-
-impl Reasoner<ArcStr, ArcAnnotatedComponent> for PyWhelkReasoner {
-    fn get_name(&self) -> String {
-        "PyWhelk".to_string()
-    }
-
-    fn get_version(&self) -> String {
-        env!("CARGO_PKG_VERSION").to_string()
     }
 
     fn inferred_axioms(&self) -> Box<dyn Iterator<Item = Component<ArcStr>>> {
@@ -132,7 +121,7 @@ impl Reasoner<ArcStr, ArcAnnotatedComponent> for PyWhelkReasoner {
                         } else {
                             None
                         }
-                    })
+                    }),
             )),
             _ => Err(ReasonerError::Other(format!(
                 "Cannot get subclasses for component {:?}",
