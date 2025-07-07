@@ -99,7 +99,7 @@ jobs:
           merge-multiple: true
 
       - name: Install dependencies
-        run: pip install --no-index --find-links=dist py-whelk
+        run: pip install -vvv --no-index --find-links=dist py-whelk
       - name: Test with pytest
         run: pytest --doctest-modules --junitxml=junit/test-results-${{ matrix.os }}.xml test/
       - name: Upload pytest test results
