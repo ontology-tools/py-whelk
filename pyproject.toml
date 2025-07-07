@@ -4,6 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "py-whelk"
+version = "0.1.0"
 description = "Wrapper arround whelk-rs for integration with py-horned-owl"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -13,9 +14,8 @@ authors = [
 ]
 dependencies = [
     "cffi",
-    "py-horned-owl >= 1.2.0",
+    "py-horned-owl >= 1.3.0.dev1",
 ]
-dynamic = ["version"]
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",

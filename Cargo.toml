@@ -1,6 +1,6 @@
 [package]
 name = "py-whelk"
-description = "A wrapper around whelk"
+description = "A wrapper around whelk-rs"
 version = "0.1.0"
 authors = ["Björn Gehrke <bjoern.gehrke+pywhelk@uzh.ch>"]
 edition = "2024"
@@ -12,4 +12,4 @@ crate-type=["cdylib"]
 [dependencies]
 horned-owl = "^1.1"
 whelk = { git = "https://github.com/b-gehrke/whelk-rs", branch = "feature/update-horned" } # Waiting for https://github.com/INCATools/whelk-rs/pull/24
-py-horned-owl-reasoner = { git = "https://github.com/ontology-tools/py-horned-owl", branch = "feature/reasoner" }
+py-horned-owl-reasoner = { git = "https://github.com/ontology-tools/py-horned-owl" }
