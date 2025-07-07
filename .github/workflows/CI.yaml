@@ -65,6 +65,49 @@ jobs:
           name: cibw-sdist
           path: dist/*.tar.gz
 
+  test:
+    name: Run tests
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      matrix:
+        include:
+          - os: linux-intel
+            runs-on: ubuntu-latest
+          - os: linux-arm
+            runs-on: ubuntu-24.04-arm
+          - os: windows-intel
+            runs-on: windows-latest
+        #   - os: windows-arm
+        #     runs-on: windows-11-arm
+          - os: macos-intel
+            # macos-13 was the last x86_64 runner
+            runs-on: macos-13
+          - os: macos-arm
+            # macos-14+ (including latest) are ARM64 runners
+            runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          filter: "test/**"
+      - uses: actions/download-artifact@v4
+        with:
+          # unpacks all CIBW artifacts into dist/
+          pattern: cibw-*
+          path: dist
+          merge-multiple: true
+
+      - name: Install dependencies
+        run: pip install dist/*.whl
+      - name: Test with pytest
+        run: pytest --doctest-modules --junitxml=junit/test-results-${{ matrix.os }}.xml test/
+      - name: Upload pytest test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-results-${{ matrix.os }}
+          path: junit/test-results-${{ matrix.os }}.xml
+        # Use always() to always run this step to publish test results when there are test failures
+        if: ${{ always() }}
+
   upload_pypi:
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
