@@ -67,6 +67,7 @@ jobs:
 
   test:
     name: Run tests
+    needs: [build_wheels]
     runs-on: ${{ matrix.runs-on }}
     strategy:
       matrix:
@@ -109,7 +110,7 @@ jobs:
         if: ${{ always() }}
 
   upload_pypi:
-    needs: [build_wheels, build_sdist]
+    needs: [test,build_wheels, build_sdist]
     runs-on: ubuntu-latest
     environment:
       name: pypi
@@ -128,7 +129,7 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@release/v1
 
   upload_test_pypi:
-    needs: [build_wheels, build_sdist]
+    needs: [test,build_wheels, build_sdist]
     runs-on: ubuntu-latest
 
     environment:
