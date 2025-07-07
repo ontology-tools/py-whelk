@@ -1,13 +1,18 @@
 __version__ = "0.1.0"
 
+
+
 def create_reasoner(ontology):
     """
     Create a reasoner instance.
     """
     from pyhornedowl import create_reasoner
     import platform
-    from os import path
+    from os import path, listdir
+    
+    dir = path.join(path.dirname(__file__), "pywhelk")
+    libname = [f for f in listdir(dir) if any(f.endswith(s) for s in [".so", ".dynlib", ".dll"])][0]
+    libpath = path.abspath(path.join(dir, libname))
+    
 
-    filename = "libpywhelk.so" if platform.system() != "Windows" else "pywhelk.dll"
-
-    return create_reasoner(path.join(path.dirname(__file__), filename), ontology)
+    return create_reasoner(libpath, ontology)

@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=42", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["maturin>=1.0,<2.0","cffi"]
+build-backend = "maturin"
 
 [project]
 name = "py-whelk"
@@ -12,7 +12,8 @@ authors = [
     { name = "Björn Gehrke", email = "bjoern.gehrke+pywhelk@uzh.ch" }
 ]
 dependencies = [
-    "py-horned-owl >= 1.2.0"
+    "cffi",
+    "py-horned-owl >= 1.2.0",
 ]
 dynamic = ["version"]
 classifiers = [
@@ -21,11 +22,4 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
 
-[tool.setuptools]
-packages = ["pywhelk"]
 
-[tool.setuptools.dynamic]
-version = {attr = "pywhelk.__version__"}
-
-[tool.setuptools.package-data]
-pywhelk = ["*.so", "*.dll"]

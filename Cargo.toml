@@ -1,7 +1,7 @@
 [package]
 name = "py-whelk"
 description = "A wrapper around whelk"
-version = "0.0.0"
+version = "0.1.0"
 authors = ["Björn Gehrke <bjoern.gehrke+pywhelk@uzh.ch>"]
 edition = "2024"
 
