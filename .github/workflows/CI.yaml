@@ -40,6 +40,7 @@ jobs:
         uses: pypa/cibuildwheel@v3.0.1
         env:
           CIBW_PLATFORM: ${{ matrix.platform || 'auto' }}
+          CIBW_SKIP: cp310-musllinux_x86_64 cp39-musllinux_x86_64
         # Can also be configured directly, using `with:`
         # with:
         #   package-dir: .
